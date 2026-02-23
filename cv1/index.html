@@ -95,22 +95,169 @@
         </ion-card-content>
       </ion-card>
 
+      <!-- Dulezite terminy -->
+      <ion-card>
+        <ion-card-content>
+          <ion-text id="konecSemestru" style="display: block; font-size:110%; padding-bottom: 5px">
+            Konec výuky v letním semestru: 16. 5. 2026
+          </ion-text>
+
+          <ion-text id="zkouska" style="display: block; font-size:110%; padding-bottom: 5px">
+            Začátek zkouškového období: 18. 5. 2026
+          </ion-text>
+
+          <ion-text id="servis" style="display: block; font-size:110%; padding-bottom: 5px">
+            Konec zkouškového období: 27. 6. 2026
+          </ion-text>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card>
+        <ion-card-content>
+          <ion-text id="semesterProgressText">
+            Průběh semestru: 0 %
+          </ion-text>
+          <ion-progress-bar id="semesterProgress" value="0"></ion-progress-bar>
+        </ion-card-content>
+      </ion-card>
+
     </ion-content>
 
   </ion-app>
 
   <script>
+    document.getElementById('actualDate').innerText = "Dnešní datum: " + new Date().toLocaleDateString('cs-CZ');
 
-    // https://www.w3schools.com/js/js_variables.asp
+    const DATES = {
+      LETNI_SEMESTR_START: new Date(2026, 1, 16),
+      KONEC_VYUKY_LETNI: new Date(2026, 4, 16),
+      ZKOUSKOVE_LETNI_START: new Date(2026, 4, 18),
+      ZKOUSKOVE_LETNI_END: new Date(2026, 5, 27)
+    };
+    const DAY_MS = 24 * 60 * 60 * 1000;
 
-    // === Ukazka: reakce na vyber data v ion-datetime ===
     let dateTimeHtml = document.getElementById('datetime');
     dateTimeHtml.addEventListener("ionChange", function (e) {
-      let selected = new Date(this.value);
+      const value = String(this.value || "");
+      const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+      let selected = (year && month && day)
+        ? new Date(year, month - 1, day)
+        : new Date();
+
+      let selectedDateHtml = document.getElementById('selectedDate');
+      selectedDateHtml.innerText = "Zvolené datum: " + selected.toLocaleDateString('cs-CZ');
+
+      let today = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      updateSemesterProgress(today);
+
+      let konecSemestru = DATES.KONEC_VYUKY_LETNI;
+      let zkouska = DATES.ZKOUSKOVE_LETNI_START;
+      let servis = DATES.ZKOUSKOVE_LETNI_END;
+
+      const konecSemestruDiff = konecSemestru - today;
+      const zkouskaDiff = zkouska - today;
+      const servisDiff = servis - today;
+
+      // Konec semestru
+      if (konecSemestruDiff < 0) {
+        document.getElementById('konecSemestru').style.color = "gray";
+      } else if (konecSemestruDiff < 7 * 24 * 60 * 60 * 1000) {
+        document.getElementById('konecSemestru').style.color = "red";
+      } else if (konecSemestruDiff < 30 * 24 * 60 * 60 * 1000) {
+        document.getElementById('konecSemestru').style.color = "orange";
+      } else {
+        document.getElementById('konecSemestru').style.color = "green";
+      }
+
+      // Zkouška
+      if (zkouskaDiff < 0) {
+        document.getElementById('zkouska').style.color = "gray";
+      } else if (zkouskaDiff < 7 * 24 * 60 * 60 * 1000) {
+        document.getElementById('zkouska').style.color = "red";
+      } else if (zkouskaDiff < 30 * 24 * 60 * 60 * 1000) {
+        document.getElementById('zkouska').style.color = "orange";
+      } else {
+        document.getElementById('zkouska').style.color = "green";
+      }
+
+      // Servis
+      if (servisDiff < 0) {
+        document.getElementById('servis').style.color = "gray";
+      } else if (servisDiff < 7 * 24 * 60 * 60 * 1000) {
+        document.getElementById('servis').style.color = "red";
+      } else if (servisDiff < 30 * 24 * 60 * 60 * 1000) {
+        document.getElementById('servis').style.color = "orange";
+      } else {
+        document.getElementById('servis').style.color = "green";
+      }
+
+      document.getElementById('konecSemestru').innerText = "Konec výuky v letním semestru: " + konecSemestru.toLocaleDateString('cs-CZ');
+      document.getElementById('zkouska').innerText = "Začátek zkouškového období: " + zkouska.toLocaleDateString('cs-CZ');
+      document.getElementById('servis').innerText = "Konec zkouškového období: " + servis.toLocaleDateString('cs-CZ');
     });
 
-  </script>
+    let progressBar = document.getElementById('semesterProgress');
+    let progressText = document.getElementById('semesterProgressText');
 
+    function updateSemesterProgress(referenceDate) {
+      let startSemestru = DATES.LETNI_SEMESTR_START;
+      let konecSemestru = DATES.KONEC_VYUKY_LETNI;
+
+      let totalMs = konecSemestru - startSemestru;
+      let elapsedMs = referenceDate - startSemestru;
+      let progress = elapsedMs / totalMs;
+
+      if (progress < 0) {
+        progress = 0;
+      } else if (progress > 1) {
+        progress = 1;
+      }
+
+      progressBar.value = progress;
+      progressText.innerText = "Průběh semestru: " + Math.round(progress * 100) + " %";
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    async function showNearDeadlinesToast() {
+      let today = startOfDay(new Date());
+      let deadlines = [
+        { label: "Konec výuky v letním semestru", date: DATES.KONEC_VYUKY_LETNI },
+        { label: "Začátek zkouškového období", date: DATES.ZKOUSKOVE_LETNI_START },
+        { label: "Konec zkouškového období", date: DATES.ZKOUSKOVE_LETNI_END }
+      ];
+
+      let upcoming = deadlines
+        .map((deadline) => {
+          return {
+            label: deadline.label,
+            daysLeft: Math.round((deadline.date - today) / DAY_MS)
+          };
+        })
+        .filter((deadline) => deadline.daysLeft >= 0 && deadline.daysLeft <= 7);
+
+      if (upcoming.length === 0) {
+        return;
+      }
+
+      let listUpcoming = upcoming.map((deadline) => `${deadline.label} (${deadline.daysLeft} dní)`).join(", ");
+
+      let toast = document.createElement('ion-toast');
+      toast.message = listUpcoming;
+      toast.buttons = [{ text: 'OK', role: 'cancel' }];
+
+      document.body.appendChild(toast);
+      await toast.present();
+      toast.addEventListener('didDismiss', function () {
+        toast.remove();
+      });
+    }
+
+    updateSemesterProgress(new Date());
+    showNearDeadlinesToast();
+  </script>
 </body>
 
 </html>
