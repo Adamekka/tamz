@@ -1,202 +1,117 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	const DATES = {
-		LETNI_SEMESTR_START: new Date(2026, 1, 16),
-		KONEC_VYUKY_LETNI: new Date(2026, 4, 16),
-		ZKOUSKOVE_LETNI_START: new Date(2026, 4, 18),
-		ZKOUSKOVE_LETNI_END: new Date(2026, 5, 27)
-	};
-
-	const DAY_MS = 24 * 60 * 60 * 1000;
-
-	let actualDate = '00/00/0000';
-	let selectedDate = '---';
-	let semesterProgress = 0;
-	let semesterProgressText = 'Prubeh semestru: 0 %';
-
-	let konecSemestruColor = 'inherit';
-	let zkouskaColor = 'inherit';
-	let servisColor = 'inherit';
-
-	function formatCsDate(date: Date) {
-		return date.toLocaleDateString('cs-CZ');
-	}
-
-	function startOfDay(date: Date) {
-		return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-	}
-
-	function updateSemesterProgress(referenceDate: Date) {
-		const startSemestru = DATES.LETNI_SEMESTR_START;
-		const konecSemestru = DATES.KONEC_VYUKY_LETNI;
-
-		const totalMs = konecSemestru.getTime() - startSemestru.getTime();
-		const elapsedMs = referenceDate.getTime() - startSemestru.getTime();
-		let progress = elapsedMs / totalMs;
-
-		if (progress < 0) {
-			progress = 0;
-		} else if (progress > 1) {
-			progress = 1;
-		}
-
-		semesterProgress = progress;
-		semesterProgressText = `Prubeh semestru: ${Math.round(progress * 100)} %`;
-	}
-
-	function getColorByDiff(diffMs: number) {
-		if (diffMs < 0) {
-			return 'gray';
-		}
-		if (diffMs < 7 * DAY_MS) {
-			return 'red';
-		}
-		if (diffMs < 30 * DAY_MS) {
-			return 'orange';
-		}
-		return 'green';
-	}
-
-	function updateDeadlineColors(referenceDate: Date) {
-		const today = startOfDay(referenceDate);
-
-		const konecSemestruDiff = DATES.KONEC_VYUKY_LETNI.getTime() - today.getTime();
-		const zkouskaDiff = DATES.ZKOUSKOVE_LETNI_START.getTime() - today.getTime();
-		const servisDiff = DATES.ZKOUSKOVE_LETNI_END.getTime() - today.getTime();
-
-		konecSemestruColor = getColorByDiff(konecSemestruDiff);
-		zkouskaColor = getColorByDiff(zkouskaDiff);
-		servisColor = getColorByDiff(servisDiff);
-	}
-
-	function parseIonDate(value: string) {
-		const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-		if (year && month && day) {
-			return new Date(year, month - 1, day);
-		}
-		return new Date();
-	}
-
-	function handleDateChange(event: Event) {
-		const target = event.currentTarget as HTMLIonDatetimeElement;
-		const rawValue = String(target?.value || '');
-		const date = parseIonDate(rawValue);
-
-		selectedDate = formatCsDate(date);
-		updateSemesterProgress(startOfDay(date));
-		updateDeadlineColors(date);
-	}
-
-	async function showNearDeadlinesToast() {
-		const today = startOfDay(new Date());
-		const deadlines = [
-			{ label: 'Konec vyuky v letnim semestru', date: DATES.KONEC_VYUKY_LETNI },
-			{ label: 'Zacatek zkouskoveho obdobi', date: DATES.ZKOUSKOVE_LETNI_START },
-			{ label: 'Konec zkouskoveho obdobi', date: DATES.ZKOUSKOVE_LETNI_END }
-		];
-
-		const upcoming = deadlines
-			.map((deadline) => ({
-				label: deadline.label,
-				daysLeft: Math.round((deadline.date.getTime() - today.getTime()) / DAY_MS)
-			}))
-			.filter((deadline) => deadline.daysLeft >= 0 && deadline.daysLeft <= 7);
-
-		if (upcoming.length === 0) {
-			return;
-		}
-
-		const listUpcoming = upcoming
-			.map((deadline) => `${deadline.label} (${deadline.daysLeft} dni)`)
-			.join(', ');
-
-		const toast = document.createElement('ion-toast');
-		toast.message = listUpcoming;
-		toast.buttons = [{ text: 'OK', role: 'cancel' }];
-
-		document.body.appendChild(toast);
-		await toast.present();
-		toast.addEventListener(
-			'didDismiss',
-			() => {
-				toast.remove();
-			},
-			{ once: true }
-		);
-	}
+	let htmlList: HTMLUListElement;
+	let ionicList: HTMLElement;
 
 	onMount(() => {
-		const now = new Date();
-		actualDate = formatCsDate(now);
-		updateSemesterProgress(startOfDay(now));
-		updateDeadlineColors(now);
-		void showNearDeadlinesToast();
+		// showItems();
 	});
+
+	function showHList(n: number) {
+		console.log('showHList');
+		for (let i = 0; i < n; i++) {
+			let node = document.createElement('li');
+			node.innerText = i.toString();
+			htmlList.appendChild(node);
+		}
+	}
+
+	function showIList(n: number) {
+		console.log('showIList');
+		for (let i = 0; i < n; i++) {
+			let node = document.createElement('ion-item');
+			node.setAttribute('button', 'true');
+			node.innerHTML = `<ion-label>${i.toString()}</ion-label>`;
+			ionicList.appendChild(node);
+		}
+	}
+
+	function addSimpleItem() {
+		localStorage.setItem('key-1', 'AAA BBB CCC DDD');
+		localStorage.setItem('key-2', 'BBB CCC DDD EEE');
+		localStorage.setItem('key-3', 'CCC DDD FFF GGG');
+		console.log('localStorage.length: ' + localStorage.length);
+	}
+
+	function showItems() {
+		let el = htmlList;
+		el.innerHTML = '';
+
+		let value = localStorage.getItem('key-1');
+		console.log(value);
+		let node = document.createElement('li');
+		node.innerText = value ?? '';
+		htmlList.appendChild(node);
+	}
+
+	function itemClick(id: string) {
+		console.log('Item ID: ' + id);
+	}
 </script>
+
+<!-- =============================================================
+	TODO 0: Zobrazení záznamů v ionic-list
+	=============================================================
+	Upravte funkci showItems() tak, aby se zobrazovaly správné
+	názvy záznamu v ion-list (místo HTML list).
+-->
+
+<!-- =============================================================
+	TODO 1: Smazání všech záznamů
+	=============================================================
+	Doplňte funkci, která odstraní všechny záznamy z úložiště
+	a aktualizuje zobrazený seznam.
+-->
+
+<!-- =============================================================
+	TODO 2: Přidání záznamu s vlastním názvem
+	=============================================================
+	Upravte přidávání tak, aby se jako název záznamu použil
+	text zadaný uživatelem (ion-input).
+	Co použít jako vhodný klíč?
+-->
+
+<!-- =============================================================
+	TODO 3: Odstranění jednotlivého záznamu
+	=============================================================
+	Přidejte možnost odstranit konkrétní záznam ze seznamu
+	(např. tlačítkem u každé položky).
+-->
+
+<!-- =============================================================
+	Za splnění základních TODO 0-3 získáte 2 body.
+	Pokud vypracujete i některá z následujících rozšíření (bonus),
+	můžete získat další 1 bod navíc.
+	=============================================================
+	- Vytvořte objekt reprezentující záznam a do úložiště ukládejte
+	  a načítejte tento objekt pomocí JSON.stringify / JSON.parse.
+	  Např.: { name: "Nákup", priority: "high" }
+
+	- Přidejte barvu/ikonu podle priority (ion-select + ion-icon)
+
+	- Použijte ion-item-sliding pro swipe-to-delete
+	  https://ionicframework.com/docs/api/item-sliding
+
+	- Přidejte ion-alert pro potvrzení smazání
+	  https://ionicframework.com/docs/api/alert
+
+	- Přidejte ion-badge s počtem položek do headeru
+	  https://ionicframework.com/docs/api/badge
+-->
 
 <ion-header>
 	<ion-toolbar>
-		<ion-title>Terminy</ion-title>
+		<ion-title>Local Storage</ion-title>
 	</ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-	<ion-card>
-		<ion-card-content>
-			<ion-text style="display: block; font-size: 110%; padding-bottom: 5px;">
-				Dnesni datum: {actualDate}
-			</ion-text>
-		</ion-card-content>
-	</ion-card>
+	<ion-button id="button-list-1" on:click={() => showHList(50)}>HTML List</ion-button>
+	<ion-button id="button-list-2" on:click={() => showIList(50)}>Ionic List</ion-button>
+	<ion-button id="button-list-3" on:click={addSimpleItem}>LS add</ion-button>
+	<ion-button id="button-list-4" on:click={showItems}>LS read</ion-button>
 
-	<ion-card>
-		<ion-card-content>
-			<ion-text style="display: block; font-size: 150%; text-align: center;">Zadej datum</ion-text>
-			<p style="text-align: center; padding-bottom: 5px;">
-				<ion-datetime-button datetime="datetime"></ion-datetime-button>
-				<ion-modal>
-					<ion-datetime
-						id="datetime"
-						locale="cs-CZ"
-						presentation="date"
-						show-default-buttons={true}
-						on:ionChange={handleDateChange}
-					></ion-datetime>
-				</ion-modal>
-			</p>
-			<ion-text style="display: block; font-size: 110%; padding-top: 5px; padding-bottom: 5px;">
-				Zvolene datum: {selectedDate}
-			</ion-text>
-		</ion-card-content>
-	</ion-card>
-
-	<ion-card>
-		<ion-card-content>
-			<ion-text
-				style={`display: block; font-size: 110%; padding-bottom: 5px; color: ${konecSemestruColor};`}
-			>
-				Konec vyuky v letnim semestru: {formatCsDate(DATES.KONEC_VYUKY_LETNI)}
-			</ion-text>
-
-			<ion-text
-				style={`display: block; font-size: 110%; padding-bottom: 5px; color: ${zkouskaColor};`}
-			>
-				Zacatek zkouskoveho obdobi: {formatCsDate(DATES.ZKOUSKOVE_LETNI_START)}
-			</ion-text>
-
-			<ion-text
-				style={`display: block; font-size: 110%; padding-bottom: 5px; color: ${servisColor};`}
-			>
-				Konec zkouskoveho obdobi: {formatCsDate(DATES.ZKOUSKOVE_LETNI_END)}
-			</ion-text>
-		</ion-card-content>
-	</ion-card>
-
-	<ion-card>
-		<ion-card-content>
-			<ion-text>{semesterProgressText}</ion-text>
-			<ion-progress-bar value={semesterProgress}></ion-progress-bar>
-		</ion-card-content>
-	</ion-card>
+	<ul id="html-list" bind:this={htmlList}></ul>
+	<ion-list id="ionic-list" inset={true} bind:this={ionicList}></ion-list>
 </ion-content>
