@@ -33,6 +33,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"ionic-svelte": "^0.5.85"
+		"ionic-svelte": "^0.5.85",
+		"uuid": "^13.0.0"
 	}
 }

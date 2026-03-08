@@ -1,14 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { v4 as uuidv4 } from 'uuid';
 
 	let htmlList: HTMLUListElement;
 	let ionicList: HTMLElement;
+	let itemName = '';
 
-	onMount(() => {
-		// showItems();
-	});
+	function clearLists() {
+		htmlList.innerHTML = '';
+		ionicList.innerHTML = '';
+	}
 
 	function showHList(n: number) {
+		clearLists();
 		console.log('showHList');
 		for (let i = 0; i < n; i++) {
 			let node = document.createElement('li');
@@ -18,6 +21,7 @@
 	}
 
 	function showIList(n: number) {
+		clearLists();
 		console.log('showIList');
 		for (let i = 0; i < n; i++) {
 			let node = document.createElement('ion-item');
@@ -27,26 +31,55 @@
 		}
 	}
 
+	function handleItemNameInput(event: Event) {
+		const target = event.currentTarget as HTMLIonInputElement;
+		itemName = String(target.value ?? '');
+	}
+
 	function addSimpleItem() {
-		localStorage.setItem('key-1', 'AAA BBB CCC DDD');
-		localStorage.setItem('key-2', 'BBB CCC DDD EEE');
-		localStorage.setItem('key-3', 'CCC DDD FFF GGG');
+		const name = itemName.trim();
+		if (!name) return;
+
+		localStorage.setItem(uuidv4(), name);
+		itemName = '';
 		console.log('localStorage.length: ' + localStorage.length);
 	}
 
-	function showItems() {
-		let el = htmlList;
-		el.innerHTML = '';
+	function clearItems() {
+		localStorage.clear();
+		showItems();
+	}
 
-		let value = localStorage.getItem('key-1');
-		console.log(value);
-		let node = document.createElement('li');
-		node.innerText = value ?? '';
-		htmlList.appendChild(node);
+	function showItems() {
+		clearLists();
+
+		for (let i = 0; i < localStorage.length; i++) {
+			let key = localStorage.key(i);
+			if (!key) continue;
+
+			let value = localStorage.getItem(key);
+			console.log(value);
+
+			let node = document.createElement('ion-item');
+
+			let label = document.createElement('ion-label');
+			label.innerText = value ?? '';
+
+			let button = document.createElement('ion-button');
+			button.setAttribute('slot', 'end');
+			button.innerText = 'Delete';
+			button.addEventListener('click', () => itemClick(key));
+
+			node.appendChild(label);
+			node.appendChild(button);
+			ionicList.appendChild(node);
+		}
 	}
 
 	function itemClick(id: string) {
 		console.log('Item ID: ' + id);
+		localStorage.removeItem(id);
+		showItems();
 	}
 </script>
 
@@ -107,10 +140,17 @@
 </ion-header>
 
 <ion-content class="ion-padding">
+	<ion-row>
+		<ion-input placeholder="Item name" value={itemName} on:ionInput={handleItemNameInput}
+		></ion-input>
+		<ion-button id="button-list-3" on:click={addSimpleItem}>LS add</ion-button>
+	</ion-row>
+
+	<ion-button id="button-list-6" on:click={clearLists}>Clear lists</ion-button>
 	<ion-button id="button-list-1" on:click={() => showHList(50)}>HTML List</ion-button>
 	<ion-button id="button-list-2" on:click={() => showIList(50)}>Ionic List</ion-button>
-	<ion-button id="button-list-3" on:click={addSimpleItem}>LS add</ion-button>
 	<ion-button id="button-list-4" on:click={showItems}>LS read</ion-button>
+	<ion-button id="button-list-5" on:click={clearItems}>LS clear</ion-button>
 
 	<ul id="html-list" bind:this={htmlList}></ul>
 	<ion-list id="ionic-list" inset={true} bind:this={ionicList}></ion-list>
